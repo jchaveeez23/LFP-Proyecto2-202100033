@@ -1,0 +1,6 @@
+use(test)
+db.createCollection('users')
+InsertarUnico "user1" {"name": "John Doe", "age": 30}
+ActualizarUnico "user1" {"age": 31}
+EliminarUnico "user1"
+BuscarTodo "users"

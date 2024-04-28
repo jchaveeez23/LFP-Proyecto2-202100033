@@ -1,0 +1,7 @@
+CrearBD mi_base_de_datos
+CrearColeccion usuarios
+InsertarUnico usuarios {"nombre": "Juan", "edad": 30}
+ActualizarUnico usuarios {"nombre": "Maria"} {'set': {"edad": 25}}
+EliminarUnico usuarios {"nombre": "Pedro"}
+BuscarTodo usuarios
+BuscarUnico usuarios
