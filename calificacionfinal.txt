@@ -1,0 +1,55 @@
+CrearBD DBEjemplo = nueva CrearBD();
+EliminarBD DBEjemplo = nueva EliminarBD();
+CrearBD Futbol = nueva CrearBD();
+CrearColeccion nuevaColeccion = nueva CrearColeccion("Calificacion");
+EliminarColeccion eliminarColeccion = nueva EliminarColeccion("Calificacion");
+CrearColeccion nuevaColeccion = nueva CrearColeccion("Futbolistas");
+--- Messi el único GOAT
+InsertarUnico insertarFutbolista = nueva InsertarUnico("Futbolistas", "
+{ 
+    "nombre": "Lionel Messi",
+    "club": "Paris Saint-Germain"
+}
+");
+/* 
+	Es que Haaland es muy bueno también, pero bueno, centrémonos en LFP :D
+*/
+BuscarTodo todosFutbolistas = nueva BuscarTodo("Futbolistas");
+BuscarUnico unFutbolista = nueva BuscarUnico("Futbolistas");
+InsertarUnico insertarFutbolista = nueva InsertarUnico("Futbolistas", "
+{ 
+    "nombre": "Erling Haaland",
+    "club": "Manchester City"
+}"
+);
+ActualizarUnico actualizarFutbolista = nueva ActualizarUnico("Futbolistas", "
+{
+    "nombre": "Lionel Messi" 
+}", 
+{ 
+     $set: { "club": "Inter Miami" } 
+}
+);
+BuscarTodo todosFutbolistas = nueva BuscarTodo("Futbolistas");
+BuscarUnico unFutbolista = nueva BuscarUnico("Futbolistas");
+EliminarUnico eliminarFutbolista = nueva EliminarUnico("Futbolistas", "
+{ 
+     "nombre": "Lionel Messi" 
+}"
+);
+BuscarTodo todosFutbolistas = nueva BuscarTodo("Futbolistas");
+BuscarUnico unFutbolista = nueva BuscarUnico("Futbolistas");
+/* 
+	Eliminamos a Haaland para verificar el flujo de información
+*/
+EliminarUnico eliminarFutbolista2 = nueva EliminarUnico("Futbolistas", "
+{
+      "nombre": "Erling Haaland"
+}"
+);
+/* 
+	No debería de haber nada en la colección
+*/
+BuscarTodo todosFutbolistas = nueva BuscarTodo("Futbolistas");
+BuscarUnico unFutbolista = nueva BuscarUnico("Futbolistas");
+--- Si llegaste hasta acá felicidades, trabajaste duro :')
