@@ -70,7 +70,7 @@ class App(customtkinter.CTk):
         ruta_archivo = filedialog.asksaveasfilename(title="Guardar archivo", defaultextension=".txt", filetypes=[("Archivos de texto", "*.txt")])
         self.actualPath = ruta_archivo
         self.actualFile = ruta_archivo.split("/")[-1]
-        self.title(f"Proyecto 1 - Lenguajes - {self.actualFile}")
+        self.title(f"Proyecto 2 - Lenguajes - {self.actualFile}")
         if ruta_archivo:
             with open(ruta_archivo, "w", encoding="utf-8") as archivo:
                 archivo.write(self.textbox.get("1.0", "end-1c"))
