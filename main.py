@@ -1,160 +1,95 @@
-import tkinter as tk
+import customtkinter
 from tkinter import filedialog
-from tkinter import ttk  # Asegúrate de importar ttk
+customtkinter.set_appearance_mode("System") 
+customtkinter.set_default_color_theme("blue") 
 
-import re
+import lex
+import sin
+import translate
 
-class Application(tk.Tk):
+class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("MongoDB Compiler")
-
-        self.text_area = tk.Text(self)
-        self.text_area.pack(fill=tk.BOTH, expand=True)
-
-        self.menu_bar = tk.Menu(self)
-        self.config(menu=self.menu_bar)
-
-        # Crear pestañas para reportes
-        self.tab_control = ttk.Notebook(self)
-        self.tab_control.pack(fill=tk.BOTH, expand=True)
-
-        self.error_tab = tk.Frame(self.tab_control)
-        self.token_tab = tk.Frame(self.tab_control)
-
-        self.tab_control.add(self.error_tab, text='Error Report')
-        self.tab_control.add(self.token_tab, text='Token Report')
-
-        # Menú Archivo
-        self.file_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.file_menu.add_command(label="New", command=self.new_file)
-        self.file_menu.add_command(label="Open", command=self.open_file)
-        self.file_menu.add_command(label="Save", command=self.save_file)
-        self.file_menu.add_command(label="Save As...", command=self.save_file_as)
-        self.file_menu.add_separator()
-        self.file_menu.add_command(label="Exit", command=self.destroy)
-        self.menu_bar.add_cascade(label="File", menu=self.file_menu)
-
-        # Menú Análisis
-        self.analysis_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.analysis_menu.add_command(label="Generate MongoDB Sentences", command=self.generate_sentences)
-        self.analysis_menu.add_command(label="Generate Error Report", command=self.generate_error_report)
-        self.analysis_menu.add_command(label="Generate Token Report", command=self.generate_token_report)
-        self.menu_bar.add_cascade(label="Analysis", menu=self.analysis_menu)
-
-        # Variables para almacenar errores y tokens
-        self.errors = []
         self.tokens = []
+        self.actualFile = None
+        self.actualPath = None
+        self.title("Proyecto 2 - Lenguajes")
+        self.geometry(f"{1100}x{580}")
 
-    def new_file(self):
-        self.text_area.delete(1.0, tk.END)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure((2, 3), weight=0)
+        self.grid_rowconfigure((0, 1, 2), weight=1)
 
-    def open_file(self):
-        try:
-            file_path = filedialog.askopenfilename()
-            with open(file_path, 'r') as file:
-                self.text_area.insert(1.0, file.read())
-        except FileNotFoundError:
-            # Handle file not found error
-            pass
+        self.sidebar_frame = customtkinter.CTkFrame(self, width=140, corner_radius=0)
+        self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
+        self.sidebar_frame.grid_rowconfigure(4, weight=1)
+        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="Traductor", font=customtkinter.CTkFont(size=20, weight="bold"))
+        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
+        self.sidebar_button_1 = customtkinter.CTkButton(self.sidebar_frame, text="Abrir archivo", command=self.abrir_archivo)
+        self.sidebar_button_1.grid(row=1, column=0, padx=20, pady=10)
+        self.sidebar_button_2 = customtkinter.CTkButton(self.sidebar_frame, text="Guardar", command=self.guardar_archivo)
+        self.sidebar_button_2.grid(row=2, column=0, padx=20, pady=10)
+        self.sidebar_button_3 = customtkinter.CTkButton(self.sidebar_frame, text="Guardar archivo", command=self.guardar_como)
+        self.sidebar_button_3.grid(row=3, column=0, padx=20, pady=10)
+        self.sidebar_button_4 = customtkinter.CTkButton(self.sidebar_frame, text="Reportes", command=self.reportes)
+        self.sidebar_button_4.grid(row=4, column=0, padx=20, pady=10)
 
-    def save_file(self):
-        try:
-            file_path = filedialog.asksaveasfilename()
-            with open(file_path, 'w') as file:
-                file.write(self.text_area.get(1.0, tk.END))
-        except Exception as e:
-            # Handle other exceptions
-            pass
+        self.entry = customtkinter.CTkTextbox(self, width=250)
+        self.entry.grid(row=2, column=1, columnspan=2, padx=(20, 0), pady=(20, 20), sticky="nsew")
 
-    def save_file_as(self):
-        try:
-            file_path = filedialog.asksaveasfilename()
-            with open(file_path, 'w') as file:
-                file.write(self.text_area.get(1.0, tk.END))
-        except Exception as e:
-            # Handle exceptions
-            pass
+        self.main_button_1 = customtkinter.CTkButton(master=self, text="Analizar", fg_color="transparent", command=self.analizar, border_width=2, text_color=("gray10", "#DCE4EE"))
+        self.main_button_1.grid(row=3, column=3, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
-    def generate_sentences(self):
-        grammar = {
-            'create_db': r'CrearBD\s+(\w+)',
-            'drop_db': r'EliminarBD\s+(\w+)',
-            'create_collection': r'CrearColeccion\s+(\w+)',
-            'drop_collection': r'EliminarColeccion\s+(\w+)',
-            'insert_document': r'InsertarUnico\s+(\w+)\s+\{(\s*[^{}]+\s*)\}',
-            'update_document': r'ActualizarUnico\s+(\w+)\s+\{(\s*[^{}]+\s*)\}\s+\{\'set\':\s+\{(\s*[^{}]+\s*)\}\}',
-            'delete_document': r'EliminarUnico\s+(\w+)\s+\{(\s*[^{}]+\s*)\}',
-            'find_documents': r'BuscarTodo\s+(\w+)',
-            'find_document': r'BuscarUnico\s+(\w+)'
-        }
+        self.textbox = customtkinter.CTkTextbox(self, width=250)
+        self.textbox.grid(row=0, column=1, padx=(20, 0), pady=(20, 0), sticky="nsew")
 
-        input_text = self.text_area.get(1.0, tk.END)
-        sentences = []
+        self.lexer = lex.Lexer()
+        self.sintax = sin.Sintax(self.lexer)
+        self.translator = translate.Translate()
 
-        for line in input_text.split('\n'):
-            line = line.strip()
+    def abrir_archivo(self):
+      self.textbox.delete("1.0", "end")
+      ruta_archivo = filedialog.askopenfilename(title="Seleccione un archivo")
+      self.actualPath = ruta_archivo
+      self.actualFile = ruta_archivo.split("/")[-1]
+      self.title(f"Proyecto 1 - Lenguajes - {self.actualFile}")
+      if ruta_archivo:
+         with open(ruta_archivo, "r", encoding="utf-8") as archivo:
+            contenido = archivo.read()
+            self.textbox.insert("1.0", contenido)
 
-            if not line:
-                continue
+    def guardar_archivo(self):
+        if self.actualPath:
+            with open(self.actualPath, "w", encoding="utf-8") as archivo:
+                archivo.write(self.textbox.get("1.0", "end-1c"))
+        else:
+            self.guardar_como()
 
-            for rule_name, pattern in grammar.items():
-                match = re.search(pattern, line)
-                if match:
-                    groups = match.groups()
+    def guardar_como(self):
+        ruta_archivo = filedialog.asksaveasfilename(title="Guardar archivo", defaultextension=".txt", filetypes=[("Archivos de texto", "*.txt")])
+        self.actualPath = ruta_archivo
+        self.actualFile = ruta_archivo.split("/")[-1]
+        self.title(f"Proyecto 1 - Lenguajes - {self.actualFile}")
+        if ruta_archivo:
+            with open(ruta_archivo, "w", encoding="utf-8") as archivo:
+                archivo.write(self.textbox.get("1.0", "end-1c"))
 
-                    if rule_name == 'create_db':
-                        sentences.append(f'use({groups[0]})')
-                    elif rule_name == 'drop_db':
-                        sentences.append(f'db.dropDatabase()')
-                    elif rule_name == 'create_collection':
-                        sentences.append(f'db.createCollection(\'{groups[0]}\')')
-                    elif rule_name == 'drop_collection':
-                        sentences.append(f'db.{groups[0]}.drop()')
-                    elif rule_name == 'insert_document':
-                        sentences.append(f'db.{groups[0]}.insertOne({groups[1]})')
-                    elif rule_name == 'update_document':
-                        sentences.append(f'db.{groups[0]}.updateOne({groups[1]}, {{\'set\': {groups[2]}}})')
-                    elif rule_name == 'delete_document':
-                        sentences.append(f'db.{groups[0]}.deleteOne({groups[1]})')
-                    elif rule_name == 'find_documents':
-                        sentences.append(f'db.{groups[0]}.find()')
-                    elif rule_name == 'find_document':
-                        sentences.append(f'db.{groups[0]}.findOne()')
-                    break
-            else:
-                sentences.append(line)
 
-        self.text_area.delete(1.0, tk.END)
-        self.text_area.insert(tk.END, '\n'.join(sentences))
+    def reportes(self):
+        self.lexer.reporte_html()
+        self.sintax.reporte_html()
 
-    def generate_error_report(self):
-        self.error_report_to_html(self.errors, "error_report.html")
+    def analizar(self):
+        texto = self.textbox.get("1.0", "end-1c")
+        self.lexer.tokenizar(texto)
+        self.sintax.analizar()
+        translate = self.translator.translate(self.sintax.sentences)
 
-    def generate_token_report(self):
-        self.token_report_to_html(self.tokens, "token_report.html")
-
-    def error_report_to_html(self, errors, output_file):
-        with open(output_file, 'w') as f:
-            f.write('<html><head><title>Error Report</title></head><body>')
-            f.write('<h1>Error Report</h1>')
-            f.write('<ul>')
-            for error in errors:
-                f.write(f'<li>{error}</li>')
-            f.write('</ul>')
-            f.write('</body></html>')
-
-    def token_report_to_html(self, tokens, output_file):
-        with open(output_file, 'w') as f:
-            f.write('<html><head><title>Token Report</title></head><body>')
-            f.write('<h1>Token Report</h1>')
-            f.write('<ul>')
-            for token in tokens:
-                f.write(f'<li>{token}</li>')
-            f.write('</ul>')
-            f.write('</body></html>')
+        self.entry.delete("1.0", "end")
+        self.entry.insert("1.0", translate)
+        self.reportes()
 
 if __name__ == "__main__":
-    app = Application()
+    app = App()
     app.mainloop()
